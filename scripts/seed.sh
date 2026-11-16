@@ -14,12 +14,14 @@
 set -euo pipefail
 
 JENKINS_URL="${JENKINS_URL:-http://localhost:8080}"
+AUTH="${JENKINS_AUTH:-admin:admin}"
 JOB="nippon-cicd"
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "=== waiting for Jenkins at ${JENKINS_URL} ==="
 for i in $(seq 1 60); do
-  if curl -fsS "${JENKINS_URL}/api/json" >/dev/null 2>&1; then
+  code=$(curl -s -o /dev/null -w '%{http_code}' "${JENKINS_URL}/login" 2>/dev/null || echo 000)
+  if [ "$code" != "000" ]; then
     echo "Jenkins is up (after ~$((i*3))s)"
     break
   fi
@@ -27,22 +29,22 @@ for i in $(seq 1 60); do
 done
 
 # CSRF crumb for state-changing endpoints
-CRUMB=$(curl -fsS -c /tmp/jenkins.jar "${JENKINS_URL}/crumbIssuer/api/json" \
+CRUMB=$(curl -fsS -u "$AUTH" -c /tmp/jenkins.jar "${JENKINS_URL}/crumbIssuer/api/json" \
   | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d["crumb"] if "crumb" in d else d["crumbRequestField"]+"="+d["crumb"])' 2>/dev/null || echo "")
-CRUMB_FIELD=$(curl -fsS -c /tmp/jenkins.jar "${JENKINS_URL}/crumbIssuer/api/json" 2>/dev/null \
+CRUMB_FIELD=$(curl -fsS -u "$AUTH" -c /tmp/jenkins.jar "${JENKINS_URL}/crumbIssuer/api/json" 2>/dev/null \
   | python3 -c 'import sys,json;print(json.load(sys.stdin).get("crumbRequestField","Jenkins-Crumb"))' 2>/dev/null || echo "Jenkins-Crumb")
 echo "crumb field: ${CRUMB_FIELD}"
 
 # 1) Ensure the job exists; create from config.xml if missing.
-if ! curl -fsS "${JENKINS_URL}/job/${JOB}/api/json" >/dev/null 2>&1; then
+if ! curl -fsS -u "$AUTH" "${JENKINS_URL}/job/${JOB}/api/json" >/dev/null 2>&1; then
   echo ">>> creating job '${JOB}' from jenkins/jobs/${JOB}/config.xml"
-  curl -fsS -b /tmp/jenkins.jar \
+  curl -fsS -u "$AUTH" -b /tmp/jenkins.jar \
     -H "${CRUMB_FIELD}: ${CRUMB}" \
     --data-binary @"${HERE}/jenkins/jobs/${JOB}/config.xml" \
     "${JENKINS_URL}/createItem?name=${JOB}" || echo "(job may already exist)"
 else
   echo ">>> job '${JOB}' already exists; updating config"
-  curl -fsS -b /tmp/jenkins.jar \
+  curl -fsS -u "$AUTH" -b /tmp/jenkins.jar \
     -H "${CRUMB_FIELD}: ${CRUMB}" \
     --data-binary @"${HERE}/jenkins/jobs/${JOB}/config.xml" \
     "${JENKINS_URL}/job/${JOB}/config.xml" || true
@@ -50,7 +52,7 @@ fi
 
 # 2) Kick an initial build (so the pipeline + its credentials get exercised).
 echo ">>> triggering initial build of ${JOB}"
-curl -fsS -b /tmp/jenkins.jar \
+curl -fsS -u "$AUTH" -b /tmp/jenkins.jar \
   -H "${CRUMB_FIELD}: ${CRUMB}" \
   -d "NIPON_REF=main&DEPLOY=true&SKIP_TESTS=false" \
   "${JENKINS_URL}/job/${JOB}/buildWithParameters" || echo "(build trigger may need a manual start)"

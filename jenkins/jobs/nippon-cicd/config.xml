@@ -35,10 +35,6 @@
         </hudson.model.BooleanParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
-    <hudson.model.JobProperty>
-      <name>github-notifications</name>
-      <class>com.cloudbees.jenkins.GithubWebHookManager</class>
-    </hudson.model.JobProperty>
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps">
     <scm class="hudson.plugins.git.GitSCM" plugin="git">

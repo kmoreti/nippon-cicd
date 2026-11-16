@@ -31,21 +31,41 @@ services:
       - "50000:50000"                     # Jenkins agent (JNLP) tunnel
     environment:
       JENKINS_HOME: /var/jenkins_home
-      # Host-side tools the pipeline reaches over /usr/bin/env (see Jenkinsfile)
-      NIPON_REGISTRY: ${NIPON_REGISTRY:-192.168.68.120:5000}
+      JENKINS_ADMIN_PASSWORD: "admin"          # admin/admin until first login (change it!)
+      JAVA_OPTS: "-Duser.timezone=America/Sao_Paulo -Dhudson.model.DirectoryBrowserSupport.CSP="
+      TZ: "America/Sao_Paulo"
+      # Pipeline inputs (consumed by the Jenkinsfile; secrets come from .env)
+      NIPON_REPO_URL: ${NIPON_REPO_URL:-https://github.com/kmoreti/nippon.git}
+      NIPON_REF: ${NIPON_REF:-main}
+      NIPON_GH_TOKEN: ${GITHUB_TOKEN:-}
+      SONAR_HOST: http://sonarqube:9000
+      SONAR_TOKEN: ${SONAR_TOKEN:-}
       K3S_NODE: ${K3S_NODE:-kmoreti@192.168.68.129}
-      NIPON_REPO: ${NIPON_REPO:-https://github.com/kmoreti/nippon.git}
+      K3S_SSH_KEY: /home/jenkins/.ssh/id_ed25519   # working key to the k3s node
+      KUBECTL_CONFIG: /home/jenkins/.kube/config
+      # Build toolchain (NIPON needs JDK 27 + Maven 3.9; the host has both)
+      NIPON_JAVA_HOME: /opt/jdk27
+      NIPON_MAVEN_HOME: /opt/maven
+      K3S_NAMESPACE: ${K3S_NAMESPACE:-nippon}
+      REGISTRY: ${REGISTRY:-192.168.68.120:5000}
+      DEPLOY: ${DEPLOY:-true}
     volumes:
       - jenkins_home:/var/jenkins_home
-      # Bootstrap: install plugins + create the pipeline job on first boot
+      # Bootstrap on first boot (the ref dir is copied into jenkins_home once)
       - ./jenkins/init.groovy:/usr/share/jenkins/ref/init.groovy.d/init.groovy:ro
+      - ./jenkins/jobs/nippon-cicd/config.xml:/opt/nippon/jobs/nippon-cicd/config.xml:ro
       # Host Docker daemon so the pipeline can `docker build`/`docker push`
       - /var/run/docker.sock:/var/run/docker.sock
-      # Shared workspace so the controller sees the host Maven/JDK + kubeconfig
-      - ${HOME:-/home/kmoreti}/.m2:/var/jenkins_home/.m2
-      - ./jenkins/kubeconfig:/var/jenkins_home/kubeconfig:ro
-      - ./jenkins/id_rsa:/var/jenkins_home/id_rsa:ro
-      - ./jenkins/id_rsa.pub:/var/jenkins_home/id_rsa.pub:ro
+      # Shared workspace so the controller sees the host Maven cache + k3s creds
+      - ${HOME:-/home/kmoreti}/.m2:/home/jenkins/.m2
+      # Build toolchain: NIPON needs JDK 27 + Maven 3.9 (host has both)
+      - ${HOME:-/home/kmoreti}/.jdks/jdk-27.0.1.0.2+1:/opt/jdk27:ro
+      - /usr/share/maven:/opt/maven:ro
+      - ./jenkins/kubeconfig:/home/jenkins/.kube/config:ro
+      # Deploy SSH key that actually authenticates to the k3s node
+      - ${HOME:-/home/kmoreti}/.ssh/id_ed25519:/home/jenkins/.ssh/id_ed25519:ro
+      - ./jenkins/id_rsa:/home/jenkins/.ssh/id_rsa:ro
+      - ./jenkins/id_rsa.pub:/home/jenkins/.ssh/id_rsa.pub:ro
     networks:
       - cicd
 

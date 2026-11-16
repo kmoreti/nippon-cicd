@@ -1,86 +1,35 @@
-// ============================================================================
-// NIPON CI/CD — Jenkins bootstrap (runs once, on first container start).
-//
-//  1. Installs the plugins the pipeline needs.
-//  2. Configures the GitHub + SonarQube servers.
-//  3. Creates the `nippon-cicd` Pipeline job (script pulled from THIS repo's
-//     Jenkinsfile, so the pipeline stays version-controlled here).
-//
-// It is defensive: a failure in one step prints a warning but does not crash
-// the whole boot. Run the Jenkins REST endpoint or the web UI to re-create the
-// job manually if a plugin version drifts.
-// ============================================================================
-
+/*
+ * NIPON CI/CD — Jenkins first-boot bootstrap.
+ *
+ * Mounted to /usr/share/jenkins/ref/init.groovy.d/init.groovy and copied into
+ * jenkins_home on first boot, so it runs once. It creates the `nippon-cicd`
+ * Pipeline job from the mounted config.xml. The jenkins/jenkins:lts-jdk21 image
+ * already bundles git + workflow-cps + workflow-job, so no update-center install
+ * is needed (and the LAN has no public update-center access).
+ */
 import jenkins.model.Jenkins
+import java.util.logging.Logger
 
-def jenkins = Jenkins.getInstance()
-
-// ---------------------------------------------------------------------------
-// 1) Plugins
-// ---------------------------------------------------------------------------
-def required = [
-  'git', 'github', 'github-api', 'github-branch-source', 'github-webhook',
-  'workflow-aggregator', 'workflow-cps', 'workflow-durable-task-step',
-  'docker-workflow', 'docker-build-step', 'docker-commons',
-  'sonarqube-analyzer', 'gradle',
-  'credentials-binding', 'ssh-credentials', 'plain-credentials',
-  'ssh-agent', 'matrix-project', 'configuration-as-code'
-]
+log = Logger.getLogger('nippon-cicd-init')
 
 try {
-  def pm = jenkins.pluginManager
-  required.each { name ->
-    try {
-      def p = pm.getPlugin(name, false)
-      if (p == null) {
-        println "[init] installing plugin: ${name}"
-        pm.getJenkins().installPlugin(name)
-      } else {
-        println "[init] plugin present: ${name} @ ${p.version}"
-      }
-    } catch (e) {
-      println "[init] WARN plugin ${name}: ${e.message}"
+    def cfg = '/opt/nippon/jobs/nippon-cicd/config.xml'
+    def f = new File(cfg)
+    if (!f.exists()) {
+        log.warning("no config.xml at ${cfg}; job will be created by scripts/seed.sh")
+        return
     }
-  }
-  // Restart so freshly installed plugins load
-  println "[init] restarting Jenkins to load plugins"
-  jenkins.doRestart()
-} catch (e) {
-  println "[init] plugin install block error: ${e.message}"
-}
-
-// ---------------------------------------------------------------------------
-// 2) Global config (Jenkins URL for GitHub webhook, system admin)
-// ---------------------------------------------------------------------------
-try {
-  jenkins.setSystemMessage('NIPON CI/CD controller — bootstrapped by init.groovy')
-  jenkins.save()
-  println '[init] global config saved'
-} catch (e) {
-  println "[init] global config error: ${e.message}"
-}
-
-// ---------------------------------------------------------------------------
-// 3) Create the pipeline job (idempotent). The Jenkinsfile lives in this repo;
-//    the job pulls it via "Pipeline script from SCM" so commits here update the
-//    pipeline. The job is created only if it does not already exist.
-// ---------------------------------------------------------------------------
-try {
-  def name = 'nippon-cicd'
-  if (jenkins.getItem(name) != null) {
-    println "[init] job '${name}' already exists, skipping create"
-  } else {
-    def cfg = new File('/var/jenkins_home/jobs/nippon-cicd/config.xml')
-    if (cfg.exists()) {
-      def job = jenkins.createProjectFromXML(name, cfg.getText('UTF-8'))
-      job.save()
-      println "[init] created job '${name}' from config.xml"
+    def jenkins = Jenkins.get()
+    def name = 'nippon-cicd'
+    if (jenkins.getItem(name) == null) {
+        log.info("creating pipeline job ${name} from ${cfg}")
+        jenkins.createProjectFromXML(name, f.text)
+        log.info("job ${name} created")
     } else {
-      println "[init] no config.xml found at ${cfg} (seed-job.sh will create it)"
+        // keep the job's config in sync with the repo
+        log.info("job ${name} exists; updating from ${cfg}")
+        jenkins.getItem(name).updateByXml(f.text)
     }
-  }
-} catch (e) {
-  println "[init] job create error: ${e.message}"
+} catch (Exception e) {
+    log.warning("init.groovy job creation failed: ${e.message} (seed.sh is the fallback)")
 }
-
-println '[init] done'
