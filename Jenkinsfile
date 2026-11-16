@@ -39,7 +39,7 @@ pipeline {
     LAST_DEPLOYED = '/var/jenkins_home/last_deployed_sha.txt'
   }
 
-  stages (
+  stages {
     // ----------------------------------------------------------------------
     stage('Checkout NIPON') {
       steps {
@@ -209,7 +209,7 @@ pipeline {
         '''
       }
     }
-  )
+  }
 
   post {
     always {
