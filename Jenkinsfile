@@ -161,6 +161,7 @@ pipeline {
       steps {
         sh '''
           set -euo pipefail
+          export PATH="/opt/docker-cli:$PATH"
           SHA=$(cat $WORKSPACE/.nippon_sha)
           SHA=$(printf '%s' "$SHA" | cut -c1-12)
           cd nippon-src

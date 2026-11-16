@@ -26,6 +26,7 @@ services:
     container_name: nippon-jenkins
     restart: unless-stopped
     privileged: true                      # lets the build agent drive the host Docker daemon
+    user: "0"                             # root so it can reach the host docker.sock (group 1001)
     ports:
       - "8080:8080"                       # Jenkins web UI + /github-webhook/
       - "50000:50000"                     # Jenkins agent (JNLP) tunnel
@@ -56,6 +57,8 @@ services:
       - ./jenkins/jobs/nippon-cicd/config.xml:/opt/nippon/jobs/nippon-cicd/config.xml:ro
       # Host Docker daemon so the pipeline can `docker build`/`docker push`
       - /var/run/docker.sock:/var/run/docker.sock
+      # Host Docker CLI (the jenkins image has no docker binary; mount the host's)
+      - /mnt/wsl/docker-desktop/cli-tools/usr/bin/docker:/opt/docker-cli/docker:ro
       # Shared workspace so the controller sees the host Maven cache + k3s creds
       - ${HOME:-/home/kmoreti}/.m2:/home/jenkins/.m2
       # Build toolchain: NIPON needs JDK 27 + Maven 3.9 (host has both)
