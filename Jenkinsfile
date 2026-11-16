@@ -44,23 +44,21 @@ pipeline {
     // ----------------------------------------------------------------------
     stage('Checkout NIPON') {
       steps {
-        script {
-          sh 'rm -rf nippon-src && mkdir -p nippon-src'
-          // Clone the target ref. NIPON is private, so use the GitHub token.
-          sh """
-            set -euo pipefail
-            if [ -n "\${NIPON_GH_TOKEN}" ]; then
-              URL="https://x-access-token:\${NIPON_GH_TOKEN}@github.com/kmoreti/nippon.git"
-            else
-              URL="\${NIPON_REPO}"
-            fi
-            git clone --depth 1 --branch \${NIPON_REF} "\${URL}" nippon-src 2>/dev/null \
-              || git clone --depth 1 "\${URL}" nippon-src
-            NIPON_SHA=\$(git -C nippon-src rev-parse HEAD)
-            echo \${NIPON_SHA} > \$WORKSPACE/.nippon_sha
-            echo "Cloned NIPON @ \${NIPON_REF} (\$NIPON_SHA)"
-          """
-        }
+        // Single-quoted so the shell expands the pipeline env vars Jenkins
+        // exports (NIPON_GH_TOKEN, NIPON_REF, NIPON_REPO, WORKSPACE).
+        sh '''
+          set -euo pipefail
+          rm -rf nippon-src && mkdir -p nippon-src
+          if [ -n "$NIPON_GH_TOKEN" ]; then
+            URL="https://x-access-token:${NIPON_GH_TOKEN}@github.com/kmoreti/nippon.git"
+          else
+            URL="${NIPON_REPO}"
+          fi
+          git clone --depth 1 --branch "${NIPON_REF}" "${URL}" nippon-src 2>/dev/null \
+            || git clone --depth 1 "${URL}" nippon-src
+          echo "$(git -C nippon-src rev-parse HEAD)" > "$WORKSPACE/.nippon_sha"
+          echo "Cloned NIPON @ ${NIPON_REF} ($(cat $WORKSPACE/.nippon_sha))"
+        '''
       }
     }
 
