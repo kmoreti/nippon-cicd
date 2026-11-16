@@ -162,7 +162,7 @@ pipeline {
         sh '''
           set -euo pipefail
           SHA=$(cat $WORKSPACE/.nippon_sha)
-          SHA=${SHA:0:12}
+          SHA=$(printf '%s' "$SHA" | cut -c1-12)
           cd nippon-src
           # Login to the local (HTTP) registry.
           docker login --insecure-registry $REGISTRY -u _ -p "$(cat /var/jenkins_home/registry_pass 2>/dev/null || echo x)" 2>/dev/null || true
