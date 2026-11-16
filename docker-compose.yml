@@ -26,7 +26,8 @@ services:
     container_name: nippon-jenkins
     restart: unless-stopped
     privileged: true                      # lets the build agent drive the host Docker daemon
-    user: "0"                             # root so it can reach the host docker.sock (group 1001)
+    group_add:
+      - "1001"                           # jenkins user joins the host docker group -> socket access
     ports:
       - "8080:8080"                       # Jenkins web UI + /github-webhook/
       - "50000:50000"                     # Jenkins agent (JNLP) tunnel

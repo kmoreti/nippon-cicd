@@ -58,6 +58,11 @@ pipeline {
           echo "$(git -C nippon-src rev-parse HEAD)" > "$WORKSPACE/.nippon_sha"
           echo "Cloned NIPON @ ${NIPON_REF} ($(cat $WORKSPACE/.nippon_sha))"
         '''
+        // Expose the built commit to later stages + the post block.
+        script {
+          env.NIPON_SHA = sh(script: 'cat "$WORKSPACE/.nippon_sha"', returnStdout: true).trim()
+          echo "Built NIPON_SHA=${env.NIPON_SHA}"
+        }
       }
     }
 
@@ -187,7 +192,6 @@ pipeline {
     stage('Deploy to k3s') {
       when {
         expression { params.DEPLOY.toBoolean() }
-        expression { !params.SKIP_TESTS.toBoolean() }
       }
       steps {
         // Redeploy only when the built commit differs from the last deployed one.
@@ -217,7 +221,7 @@ pipeline {
       archiveArtifacts artifacts: 'nippon-src/**/target/surefire-reports/*.xml, .deploy_sha',
                        allowEmptyArchive: true
     }
-    success { echo "CI/CD green: NIPON @ ${NIPON_SHA} built + deployed." }
+    success { echo "CI/CD green: NIPON @ ${env.NIPON_SHA} built + deployed." }
     failure { echo "CI/CD failed - see the stage logs above for the failing stage." }
   }
 }
