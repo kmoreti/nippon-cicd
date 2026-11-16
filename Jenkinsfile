@@ -217,6 +217,6 @@ pipeline {
                        allowEmptyArchive: true
     }
     success { echo "CI/CD green: NIPON @ ${NIPON_SHA} built + deployed." }
-    failure { echo "CI/CD failed at stage ${currentBuild.currentStage}." }
+    failure { echo "CI/CD failed - see the stage logs above for the failing stage." }
   }
 }

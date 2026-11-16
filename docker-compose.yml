@@ -60,7 +60,7 @@ services:
       - ${HOME:-/home/kmoreti}/.m2:/home/jenkins/.m2
       # Build toolchain: NIPON needs JDK 27 + Maven 3.9 (host has both)
       - ${HOME:-/home/kmoreti}/.jdks/jdk-27.0.1.0.2+1:/opt/jdk27:ro
-      - /usr/share/maven:/opt/maven:ro
+      - ./maven-official/apache-maven-3.9.9:/opt/maven:ro
       - ./jenkins/kubeconfig:/home/jenkins/.kube/config:ro
       # Deploy SSH key that actually authenticates to the k3s node
       - ${HOME:-/home/kmoreti}/.ssh/id_ed25519:/home/jenkins/.ssh/id_ed25519:ro
