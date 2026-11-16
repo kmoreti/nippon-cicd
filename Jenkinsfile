@@ -5,7 +5,7 @@ pipeline {
 
   options {
     timestamps()
-    timeout(min: 20)
+    timeout(time: 20, unit: 'MINUTES')
   }
 
   environment {
