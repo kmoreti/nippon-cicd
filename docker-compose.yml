@@ -1,0 +1,94 @@
+# ============================================================================
+# NIPON CI/CD — docker-compose
+#
+# Brings up:
+#   * jenkins     — the CI/CD controller (builds, tests, quality-gates, deploys NIPON)
+#   * sonarqube   — static analysis + code coverage quality gate
+#   * sonar-db    — Postgres metadata store for SonarQube
+#
+# Jenkins runs privileged and mounts the Docker socket so the pipeline can
+# build + push the NIPON service images to the local registry (.120) and so
+# agents can use the host Docker daemon.
+#
+# Usage:
+#   cp .env.sample .env        # fill in REGISTRY / k3s node / credentials
+#   docker compose up -d
+#   # jenkins  -> http://<host>:8080   (admin/admin until you change it)
+#   # sonar    -> http://<host>:9000   (admin/admin)
+#
+# See README.md for the full pipeline + trigger design.
+# ============================================================================
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts-jdk21
+    hostname: jenkins
+    container_name: nippon-jenkins
+    restart: unless-stopped
+    privileged: true                      # lets the build agent drive the host Docker daemon
+    ports:
+      - "8080:8080"                       # Jenkins web UI + /github-webhook/
+      - "50000:50000"                     # Jenkins agent (JNLP) tunnel
+    environment:
+      JENKINS_HOME: /var/jenkins_home
+      # Host-side tools the pipeline reaches over /usr/bin/env (see Jenkinsfile)
+      NIPON_REGISTRY: ${NIPON_REGISTRY:-192.168.68.120:5000}
+      K3S_NODE: ${K3S_NODE:-kmoreti@192.168.68.129}
+      NIPON_REPO: ${NIPON_REPO:-https://github.com/kmoreti/nippon.git}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      # Bootstrap: install plugins + create the pipeline job on first boot
+      - ./jenkins/init.groovy:/usr/share/jenkins/ref/init.groovy.d/init.groovy:ro
+      # Host Docker daemon so the pipeline can `docker build`/`docker push`
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Shared workspace so the controller sees the host Maven/JDK + kubeconfig
+      - ${HOME:-/home/kmoreti}/.m2:/var/jenkins_home/.m2
+      - ./jenkins/kubeconfig:/var/jenkins_home/kubeconfig:ro
+      - ./jenkins/id_rsa:/var/jenkins_home/id_rsa:ro
+      - ./jenkins/id_rsa.pub:/var/jenkins_home/id_rsa.pub:ro
+    networks:
+      - cicd
+
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: nippon-sonarqube
+    restart: unless-stopped
+    depends_on:
+      - sonar-db
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar-db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD:-sonarpass}
+      SONAR_ES_SECURITY_ENABLED: "false"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - cicd
+
+  sonar-db:
+    image: postgres:16
+    container_name: nippon-sonar-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD:-sonarpass}
+      POSTGRES_DB: sonar
+    volumes:
+      - sonar_db:/var/lib/postgresql/data
+    networks:
+      - cicd
+
+networks:
+  cicd:
+    driver: bridge
+
+volumes:
+  jenkins_home:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonar_db:

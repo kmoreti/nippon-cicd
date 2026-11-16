@@ -1,0 +1,69 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<!--
+  NIPON CI/CD — Jenkins Pipeline job `nippon-cicd`.
+  The pipeline script is pulled from THIS repo's Jenkinsfile ("Pipeline script
+  from SCM"), so committing a new pipeline definition here updates the job.
+
+  Trigger model: a private/LAN Jenkins cannot receive a GitHub *webhook* (GitHub
+  has no route to 127.0.0.1:8080), so the job polls the NIPON repo's `main`
+  branch every 10 minutes and only re-runs when `main` has advanced since the
+  last successful build (the Jenkinsfile guards on the commit SHA). When Jenkins
+  is exposed on a public URL, swap the poll trigger for the github-webhook
+  receiver + a webhook on NIPON (see README "Triggering on merge").
+-->
+<flow-definition plugin="workflow-job">
+  <actions/>
+  <description>NIPON CI/CD: checkout -&gt; Maven build -&gt; tests -&gt; JaCoCo coverage -&gt; SonarQube quality gate -&gt; build+push images to registry -&gt; deploy to k3s. Runs on merge to NIPON main.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>NIPON_REF</name>
+          <value>main</value>
+          <description>Git ref of NIPON to build and deploy</description>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>DEPLOY</name>
+          <value>true</value>
+          <description>Deploy to k3s once the quality gate passes</description>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>SKIP_TESTS</name>
+          <value>false</value>
+          <description>Skip the test + coverage stages (emergency hotfix path)</description>
+        </hudson.model.BooleanParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <hudson.model.JobProperty>
+      <name>github-notifications</name>
+      <class>com.cloudbees.jenkins.GithubWebHookManager</class>
+    </hudson.model.JobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>https://github.com/kmoreti/nippon-cicd.git</url>
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>*/main</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+      <doGenerateSubmoduleConfigurations>true</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="empty-list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>Jenkinsfile</scriptPath>
+    <lightweight>true</lightweight>
+  </definition>
+  <triggers>
+    <hudson.triggers.SCMTrigger>
+      <spec>*/10 * * * *</spec>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <quietPeriod>2</quietPeriod>
+</flow-definition>

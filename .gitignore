@@ -1,0 +1,16 @@
+# Secrets + local runtime — never commit
+.env
+jenkins/kubeconfig
+jenkins/id_rsa
+jenkins/id_rsa.pub
+jenkins/*.xml
+
+# Build artifacts
+*.log
+.m2/
+target/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
