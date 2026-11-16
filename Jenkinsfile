@@ -82,7 +82,7 @@ pipeline {
           export JAVA_HOME=${JAVA_HOME}
           export PATH="$JAVA_HOME/bin:${MAVEN_HOME}/bin:$PATH"
           cd nippon-src
-          mvn -B -T1C -DskipTests clean package
+          mvn -B -Dmaven.repo.local=/home/jenkins/.m2/repository -T1C -DskipTests clean package
           echo '--- fat jars ---'
           ls -1 services/*/target/*.jar 2>/dev/null | head -40
         '''
@@ -98,7 +98,7 @@ pipeline {
           export JAVA_HOME=${JAVA_HOME}
           export PATH="$JAVA_HOME/bin:${MAVEN_HOME}/bin:$PATH"
           cd nippon-src
-          mvn -B -T1C test
+          mvn -B -Dmaven.repo.local=/home/jenkins/.m2/repository -T1C test
           echo '--- surefire totals (last 40) ---'
           grep -rhEo 'Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+' \
             services/*/target/surefire-reports/*.xml 2>/dev/null | tail -40 || true
@@ -116,7 +116,7 @@ pipeline {
           export PATH="$JAVA_HOME/bin:${MAVEN_HOME}/bin:$PATH"
           cd nippon-src
           # Aggregate per-module JaCoCo exec data into one report (best effort).
-          mvn -B org.jacoco:jacoco-maven-plugin:0.8.12:report-aggregate -DskipTests || true
+          mvn -B -Dmaven.repo.local=/home/jenkins/.m2/repository org.jacoco:jacoco-maven-plugin:0.8.12:report-aggregate -DskipTests || true
           echo '--- jacoco reports ---'
           find . -name 'jacoco.csv' 2>/dev/null | head
         '''
@@ -135,7 +135,7 @@ pipeline {
           export JAVA_HOME=${JAVA_HOME}
           export PATH="$JAVA_HOME/bin:${MAVEN_HOME}/bin:$PATH"
           cd nippon-src
-          mvn -B -DskipTests \
+          mvn -B -Dmaven.repo.local=/home/jenkins/.m2/repository -DskipTests \
             -Dsonar.host.url=${SONAR_HOST} \
             -Dsonar.login=${SONAR_TOKEN} \
             -Dsonar.projectKey=nippon \
