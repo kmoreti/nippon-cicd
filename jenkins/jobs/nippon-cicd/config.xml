@@ -1,19 +1,24 @@
 <?xml version='1.1' encoding='UTF-8'?>
 <!--
   NIPON CI/CD — Jenkins Pipeline job `nippon-cicd`.
-  The pipeline script is pulled from THIS repo's Jenkinsfile ("Pipeline script
-  from SCM"), so committing a new pipeline definition here updates the job.
+
+  The pipeline script now lives in the NIPON app repo at jenkins/Jenkinsfile,
+  so the job polls NIPON `main` and loads the pipeline from there. Committing a
+  new pipeline definition to NIPON therefore updates the job automatically.
 
   Trigger model: a private/LAN Jenkins cannot receive a GitHub *webhook* (GitHub
-  has no route to 127.0.0.1:8080), so the job polls the NIPON repo's `main`
-  branch every 10 minutes and only re-runs when `main` has advanced since the
-  last successful build (the Jenkinsfile guards on the commit SHA). When Jenkins
-  is exposed on a public URL, swap the poll trigger for the github-webhook
-  receiver + a webhook on NIPON (see README "Triggering on merge").
+  has no route to 127.0.0.1:8080), so the job polls `main` every 10 minutes and
+  only re-runs when the watched `main` has advanced since the last successful
+  build. Polling the *app* repo (not this one) is what makes a merge to NIPON
+  fire the build; polling this repo (the old single-SCM design) meant a merge to
+  NIPON main was invisible to the poll and the pipeline never triggered.
+
+  When Jenkins is exposed on a public URL, swap this poll for the
+  github-webhook receiver + a webhook on NIPON (see README "Triggering on merge").
 -->
 <flow-definition plugin="workflow-job">
   <actions/>
-  <description>NIPON CI/CD: checkout -&gt; Maven build -&gt; tests -&gt; JaCoCo coverage -&gt; SonarQube quality gate -&gt; build+push images to registry -&gt; deploy to k3s. Runs on merge to NIPON main.</description>
+  <description>NIPON CI/CD: checkout NIPON -&gt; Maven build -&gt; tests -&gt; JaCoCo coverage -&gt; SonarQube quality gate -&gt; build+push images to registry -&gt; deploy to k3s. Polls NIPON main every 10 minutes and deploys the k8s objects to k3s.</description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.model.ParametersDefinitionProperty>
@@ -35,13 +40,21 @@
         </hudson.model.BooleanParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+        <hudson.triggers.SCMTrigger>
+          <spec>*/10 * * * *</spec>
+          <ignorePostCommitHooks>false</ignorePostCommitHooks>
+        </hudson.triggers.SCMTrigger>
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps">
     <scm class="hudson.plugins.git.GitSCM" plugin="git">
       <configVersion>2</configVersion>
       <userRemoteConfigs>
         <hudson.plugins.git.UserRemoteConfig>
-          <url>https://github.com/kmoreti/nippon-cicd.git</url>
+          <url>https://github.com/kmoreti/nippon.git</url>
         </hudson.plugins.git.UserRemoteConfig>
       </userRemoteConfigs>
       <branches>
@@ -53,13 +66,9 @@
       <submoduleCfg class="empty-list"/>
       <extensions/>
     </scm>
-    <scriptPath>Jenkinsfile</scriptPath>
+    <scriptPath>jenkins/Jenkinsfile</scriptPath>
     <lightweight>true</lightweight>
   </definition>
-  <triggers>
-    <hudson.triggers.SCMTrigger>
-      <spec>*/10 * * * *</spec>
-    </hudson.triggers.SCMTrigger>
-  </triggers>
   <quietPeriod>2</quietPeriod>
+  <disabled>false</disabled>
 </flow-definition>
