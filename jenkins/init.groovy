@@ -46,7 +46,19 @@ try {
     log.warning("credential creation failed: ${e.message}")
 }
 
-// --- 2) the pipeline job from the mounted config.xml ---
+// --- 2) git safe.directory so checkout doesn't fail with "dubious
+// ownership" (the pipeline build runs as root, but the workspace .git is
+// owned by the jenkins user; trust all workspaces via the system config) ---
+try {
+    def proc = new ProcessBuilder('sh', '-c', 'git config --system --add safe.directory "*"')
+        .redirectErrorStream(true).start()
+    proc.waitFor()
+    log.info("git safe.directory=* (avoids dubious-ownership on checkout)")
+} catch (Exception e) {
+    log.warning("git safe.directory setup failed: ${e.message}")
+}
+
+// --- 3) the pipeline job from the mounted config.xml ---
 try {
     def cfg = '/opt/nippon/jobs/nippon-cicd/config.xml'
     def f = new File(cfg)
