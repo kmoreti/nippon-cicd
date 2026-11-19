@@ -1,17 +1,52 @@
 /*
  * NIPON CI/CD — Jenkins first-boot bootstrap.
  *
- * Mounted to /usr/share/jenkins/ref/init.groovy.d/init.groovy and copied into
- * jenkins_home on first boot, so it runs once. It creates the `nippon-cicd`
+ * Mounted to /usr/share/jenkins/ref/init.groovy.d/init.groovy and run on every
+ * boot. It (1) creates the GitHub token credential the job needs to clone the
+ * PRIVATE kmoreti/nippon repo, and (2) creates/updates the `nippon-cicd`
  * Pipeline job from the mounted config.xml. The jenkins/jenkins:lts-jdk21 image
  * already bundles git + workflow-cps + workflow-job, so no update-center install
  * is needed (and the LAN has no public update-center access).
  */
 import jenkins.model.Jenkins
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider
+import com.cloudbees.plugins.credentials.CredentialsScope
+import com.cloudbees.plugins.credentials.domains.Domain
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl
 import java.util.logging.Logger
 
 log = Logger.getLogger('nippon-cicd-init')
 
+// --- 1) GitHub token credential so the job can clone the PRIVATE nippon repo ---
+// The job's SCM points at kmoreti/nippon.git (private), so a job-level checkout
+// needs a token. It comes from the NIPON_GH_TOKEN env var (the .env GITHUB_TOKEN
+// injected by docker-compose). Created as a GLOBAL System credential.
+try {
+    def token = System.getenv('NIPON_GH_TOKEN')
+    if (token && token.trim()) {
+        def store = SystemCredentialsProvider.getInstance().getStore()
+        def domain = Domain.global()
+        def id = 'nippon-gh-token'
+        def existing = store.getCredentials(domain).find { it.id == id }
+        def cred = new UsernamePasswordCredentialsImpl(
+            CredentialsScope.GLOBAL, id,
+            'NIPON GitHub token (clone private kmoreti/nippon)',
+            'x-access-token', token)
+        if (existing != null) {
+            store.updateCredentials(domain, existing, cred)
+            log.info("updated credential ${id}")
+        } else {
+            store.addCredentials(domain, cred)
+            log.info("created credential ${id}")
+        }
+    } else {
+        log.warning('NIPON_GH_TOKEN not set; skipping nippon-gh-token credential')
+    }
+} catch (Exception e) {
+    log.warning("credential creation failed: ${e.message}")
+}
+
+// --- 2) the pipeline job from the mounted config.xml ---
 try {
     def cfg = '/opt/nippon/jobs/nippon-cicd/config.xml'
     def f = new File(cfg)
