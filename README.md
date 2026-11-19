@@ -34,17 +34,22 @@ and auto-deploys NIPON to the **k3s** cluster.
 ```
 nippon-cicd/
 ├── docker-compose.yml        # jenkins + sonarqube + sonar-db
-├── Jenkinsfile               # the pipeline (stages below)
 ├── jenkins/
-│   ├── init.groovy           # first-boot: install plugins + create the job
+│   ├── init.groovy           # first-boot: install plugins + (re)create the job
 │   └── jobs/nippon-cicd/
-│       └── config.xml        # the Jenkins Pipeline job (script from SCM)
+│       └── config.xml        # the Jenkins Pipeline job (polls NIPON, script from NIPON SCM)
 ├── scripts/
 │   ├── seed.sh               # wait for Jenkins, create job, kick a build
-│   ├── deploy-to-k3s.sh      # runs ON the node: kustomize apply @ SHA
 │   └── fetch-kubeconfig.sh   # optional: pull k3s kubeconfig to a laptop
 ├── .env.sample               # copy to .env, fill in secrets
 └── README.md
+
+# The pipeline itself lives in the NIPON repo, so a merge to its `main` is what
+# triggers the build:
+nippon/
+├── jenkins/
+│   ├── Jenkinsfile               # the pipeline (stages below)
+│   └── scripts/deploy-to-k3s.sh  # runs ON the node: kustomize apply @ SHA
 ```
 
 ## Quick start
@@ -58,9 +63,10 @@ docker compose up -d         # jenkins :8080  |  sonarqube :9000
 ```
 
 On first boot `jenkins/init.groovy` installs the pipeline plugins and creates the
-`nippon-cicd` job from `jenkins/jobs/nippon-cicd/config.xml`. The job pulls the
-`Jenkinsfile` from **this** repo, so committing a pipeline change here updates
-the job on its next run.
+`nippon-cicd` job from `jenkins/jobs/nippon-cicd/config.xml` (and re-applies it
+on every boot). The job polls NIPON `main` and pulls the `Jenkinsfile` from
+**NIPON** (`nippon/jenkins/Jenkinsfile`), so committing a pipeline change to
+NIPON updates the job on its next run.
 
 ## Pipeline stages
 
@@ -94,8 +100,8 @@ Events:       "Push events", "Pull requests"
 
 ## Deploying to k3s
 
-`scripts/deploy-to-k3s.sh` runs **on the k3s node** (the pipeline pipes it over
-SSH). It pins every `nippon/<service>` image to the built SHA via
+`nippon/jenkins/scripts/deploy-to-k3s.sh` runs **on the k3s node** (the pipeline
+pipes it over SSH). It pins every `nippon/<service>` image to the built SHA via
 `kustomize --image` and applies it:
 
 ```
