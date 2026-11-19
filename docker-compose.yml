@@ -26,6 +26,8 @@ services:
     container_name: nippon-jenkins
     restart: unless-stopped
     privileged: true                      # lets the build agent drive the host Docker daemon
+    user: root
+    build: .
     group_add:
       - "1001"                           # jenkins user joins the host docker group -> socket access
     ports:
