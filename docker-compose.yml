@@ -53,6 +53,11 @@ services:
       K3S_NAMESPACE: ${K3S_NAMESPACE:-nippon}
       REGISTRY: ${REGISTRY:-192.168.68.120:5000}
       DEPLOY: ${DEPLOY:-true}
+      # From inside the Jenkins container the bridge gateway Testcontainers
+      # auto-detects (172.17.0.1) isn't where the published ports land, so the
+      # @ServiceConnection JDBC URL is refused. host.docker.internal reaches the
+      # host's published ports from inside the container.
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
     volumes:
       - jenkins_home:/var/jenkins_home
       # Bootstrap on first boot (the ref dir is copied into jenkins_home once)
