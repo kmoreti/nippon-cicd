@@ -46,6 +46,30 @@ try {
     log.warning("credential creation failed: ${e.message}")
 }
 
+// --- 1b) SonarQube login credential for the analysis ---
+// This SonarQube 9.9.8 build accepts the default admin:admin login, but its
+// user-token API 401s, so the analysis authenticates with admin:admin via a
+// GLOBAL username/password credential the pipeline binds at run time.
+try {
+    def store = SystemCredentialsProvider.getInstance().getStore()
+    def domain = Domain.global()
+    def id = 'sonar-admin'
+    def existing = store.getCredentials(domain).find { it.id == id }
+    def cred = new UsernamePasswordCredentialsImpl(
+        CredentialsScope.GLOBAL, id,
+        'NIPON SonarQube admin (analysis login)',
+        'admin', 'admin')
+    if (existing != null) {
+        store.updateCredentials(domain, existing, cred)
+        log.info("updated credential ${id}")
+    } else {
+        store.addCredentials(domain, cred)
+        log.info("created credential ${id}")
+    }
+} catch (Exception e) {
+    log.warning("sonar-admin credential creation failed: ${e.message}")
+}
+
 // --- 2) git safe.directory so checkout doesn't fail with "dubious
 // ownership" (the pipeline build runs as root, but the workspace .git is
 // owned by the jenkins user; trust all workspaces via the system config) ---
