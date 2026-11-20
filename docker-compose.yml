@@ -21,13 +21,15 @@
 
 services:
   jenkins:
-    image: jenkins/jenkins:lts-jdk21
+    image: jenkins/jenkins:lts
     hostname: jenkins
     container_name: nippon-jenkins
     restart: unless-stopped
     privileged: true                      # lets the build agent drive the host Docker daemon
     user: root
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     group_add:
       - "1001"                           # jenkins user joins the host docker group -> socket access
     ports:
@@ -36,8 +38,8 @@ services:
     environment:
       JENKINS_HOME: /var/jenkins_home
       JENKINS_ADMIN_PASSWORD: "admin"          # admin/admin until first login (change it!)
-      JAVA_OPTS: "-Duser.timezone=America/Sao_Paulo -Dhudson.model.DirectoryBrowserSupport.CSP="
-      TZ: "America/Sao_Paulo"
+      JAVA_OPTS: "-Duser.timezone=Europe/Dublin -Dhudson.model.DirectoryBrowserSupport.CSP="
+      TZ: "Europe/Dublin"
       # Pipeline inputs (consumed by the Jenkinsfile; secrets come from .env)
       NIPON_REPO_URL: ${NIPON_REPO_URL:-https://github.com/kmoreti/nippon.git}
       NIPON_REF: ${NIPON_REF:-main}
@@ -69,9 +71,6 @@ services:
       - /mnt/wsl/docker-desktop/cli-tools/usr/bin/docker:/opt/docker-cli/docker:ro
       # Shared workspace so the controller sees the host Maven cache + k3s creds
       - ${HOME:-/home/kmoreti}/.m2:/home/jenkins/.m2
-      # Build toolchain: NIPON needs JDK 27 + Maven 3.9 (host has both)
-      - ${HOME:-/home/kmoreti}/.jdks/jdk-27.0.1.0.2+1:/opt/jdk27:ro
-      - ./maven-official/apache-maven-3.9.9:/opt/maven:ro
       - ./jenkins/kubeconfig:/home/jenkins/.kube/config:ro
       # Deploy SSH key that actually authenticates to the k3s node
       - ${HOME:-/home/kmoreti}/.ssh/id_ed25519:/home/jenkins/.ssh/id_ed25519:ro
