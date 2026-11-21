@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# NIPON CI/CD — bootstrap-plugins.sh
+# NIPPON CI/CD — bootstrap-plugins.sh
 #
 # The jenkins/jenkins:lts-jdk21 image ships with ZERO plugins, and this LAN has
 # no public update-center at boot time, so we install the pipeline's plugins

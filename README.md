@@ -1,17 +1,17 @@
-# NIPON CI/CD
+# NIPPON CI/CD
 
-CI/CD pipeline for the **NIPON** real-estate microservices platform. On every
+CI/CD pipeline for the **NIPPON** real-estate microservices platform. On every
 merge to `main` of `kmoreti/nippon`, this project builds, tests, quality-gates,
-and auto-deploys NIPON to the **k3s** cluster.
+and auto-deploys NIPPON to the **k3s** cluster.
 
 ```
-   merge to NIPON main
+   merge to NIPPON main
             │  (poll / webhook)
             ▼
    ┌──────────────────────────────────────────────────────────┐
    │  Jenkins (this repo's docker-compose)                       │
    │                                                            │
-   │  1. checkout NIPON @ main                                   │
+   │  1. checkout NIPPON @ main                                   │
    │  2. Maven build  (mvn -T1C clean package)                  │
    │  3. Tests          (mvn test)                               │
    │  4. Coverage       (JaCoCo report-aggregate)                │
@@ -37,14 +37,14 @@ nippon-cicd/
 ├── jenkins/
 │   ├── init.groovy           # first-boot: install plugins + (re)create the job
 │   └── jobs/nippon-cicd/
-│       └── config.xml        # the Jenkins Pipeline job (polls NIPON, script from NIPON SCM)
+│       └── config.xml        # the Jenkins Pipeline job (polls NIPPON, script from NIPPON SCM)
 ├── scripts/
 │   ├── seed.sh               # wait for Jenkins, create job, kick a build
 │   └── fetch-kubeconfig.sh   # optional: pull k3s kubeconfig to a laptop
 ├── .env.sample               # copy to .env, fill in secrets
 └── README.md
 
-# The pipeline itself lives in the NIPON repo, so a merge to its `main` is what
+# The pipeline itself lives in the NIPPON repo, so a merge to its `main` is what
 # triggers the build:
 nippon/
 ├── jenkins/
@@ -64,15 +64,15 @@ docker compose up -d         # jenkins :8080  |  sonarqube :9000
 
 On first boot `jenkins/init.groovy` installs the pipeline plugins and creates the
 `nippon-cicd` job from `jenkins/jobs/nippon-cicd/config.xml` (and re-applies it
-on every boot). The job polls NIPON `main` and pulls the `Jenkinsfile` from
-**NIPON** (`nippon/jenkins/Jenkinsfile`), so committing a pipeline change to
-NIPON updates the job on its next run.
+on every boot). The job polls NIPPON `main` and pulls the `Jenkinsfile` from
+**NIPPON** (`nippon/jenkins/Jenkinsfile`), so committing a pipeline change to
+NIPPON updates the job on its next run.
 
 ## Pipeline stages
 
 | # | Stage                | What it does                                                        |
 |---|----------------------|---------------------------------------------------------------------|
-| 1 | Checkout NIPON       | `git clone --depth 1 --branch main` (token via `NIPON_GH_TOKEN`)    |
+| 1 | Checkout NIPPON       | `git clone --depth 1 --branch main` (token via `NIPPON_GH_TOKEN`)    |
 | 2 | Build                | `mvn -B -T1C -DskipTests clean package` → fat jars                  |
 | 3 | Tests                | `mvn -B -T1C test` (Testcontainers use the host Docker daemon)      |
 | 4 | Coverage             | JaCoCo `report-aggregate` across all modules                        |
@@ -89,7 +89,7 @@ deployed one, so a no-op poll never churns the cluster.
 
 Jenkins runs on a private LAN, so a GitHub **webhook** cannot reach
 `127.0.0.1:8080` and the job uses a **poll trigger** (`*/10 * * * *`) instead:
-every 10 minutes it checks NIPON `main` and only builds when the HEAD commit
+every 10 minutes it checks NIPPON `main` and only builds when the HEAD commit
 advanced. To switch to webhooks (faster, no polling), expose Jenkins on a public
 URL, enable the GitHub webhook receiver, and add a webhook on `kmoreti/nippon`:
 
@@ -116,6 +116,6 @@ The deployed SHA is recorded to `/var/lib/nippon/deployed_sha` for audit + rollb
 ## Secrets
 
 All secrets live in `.env` (git-ignored) and are injected into the Jenkins
-container via the `environment:` block: `GITHUB_TOKEN` (clone NIPON),
+container via the `environment:` block: `GITHUB_TOKEN` (clone NIPPON),
 `SONAR_TOKEN` (SonarQube analysis), `K3S_SSH_KEY` (deploy over SSH). The k3s
 kubeconfig and SSH key are mounted from `jenkins/` (also git-ignored).

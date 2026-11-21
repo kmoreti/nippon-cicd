@@ -1,32 +1,32 @@
 <?xml version='1.1' encoding='UTF-8'?>
 <!--
-  NIPON CI/CD - Jenkins Pipeline job `nippon-cicd`.
+  NIPPON CI/CD - Jenkins Pipeline job `nippon-cicd`.
 
-  The pipeline script now lives in the NIPON app repo at jenkins/Jenkinsfile,
-  so the job polls NIPON `main` and loads the pipeline from there. Committing a
-  new pipeline definition to NIPON therefore updates the job automatically.
+  The pipeline script now lives in the NIPPON app repo at jenkins/Jenkinsfile,
+  so the job polls NIPPON `main` and loads the pipeline from there. Committing a
+  new pipeline definition to NIPPON therefore updates the job automatically.
 
   Trigger model: a private/LAN Jenkins cannot receive a GitHub *webhook* (GitHub
   has no route to 127.0.0.1:8080), so the job polls `main` every 10 minutes and
   only re-runs when the watched `main` has advanced since the last successful
-  build. Polling the *app* repo (not this one) is what makes a merge to NIPON
+  build. Polling the *app* repo (not this one) is what makes a merge to NIPPON
   fire the build; polling this repo (the old single-SCM design) meant a merge to
-  NIPON main was invisible to the poll and the pipeline never triggered.
+  NIPPON main was invisible to the poll and the pipeline never triggered.
 
   When Jenkins is exposed on a public URL, swap this poll for the
-  github-webhook receiver + a webhook on NIPON (see README "Triggering on merge").
+  github-webhook receiver + a webhook on NIPPON (see README "Triggering on merge").
 -->
 <flow-definition plugin="workflow-job">
   <actions/>
-  <description>NIPON CI/CD: checkout NIPON -&gt; Maven build -&gt; tests -&gt; JaCoCo coverage -&gt; SonarQube quality gate -&gt; build+push images to registry -&gt; deploy to k3s. Polls NIPON main every 10 minutes and deploys the k8s objects to k3s.</description>
+  <description>NIPPON CI/CD: checkout NIPPON -&gt; Maven build -&gt; tests -&gt; JaCoCo coverage -&gt; SonarQube quality gate -&gt; build+push images to registry -&gt; deploy to k3s. Polls NIPPON main every 10 minutes and deploys the k8s objects to k3s.</description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.model.ParametersDefinitionProperty>
       <parameterDefinitions>
         <hudson.model.StringParameterDefinition>
-          <name>NIPON_REF</name>
+          <name>NIPPON_REF</name>
           <value>main</value>
-          <description>Git ref of NIPON to build and deploy</description>
+          <description>Git ref of NIPPON to build and deploy</description>
         </hudson.model.StringParameterDefinition>
         <hudson.model.BooleanParameterDefinition>
           <name>DEPLOY</name>

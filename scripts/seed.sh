@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# NIPON CI/CD — seed.sh
+# NIPPON CI/CD — seed.sh
 #
 # Run from the host after `docker compose up -d`. Idempotently:
 #   1. waits for the Jenkins controller to accept requests,
@@ -54,7 +54,7 @@ fi
 echo ">>> triggering initial build of ${JOB}"
 curl -fsS -u "$AUTH" -b /tmp/jenkins.jar \
   -H "${CRUMB_FIELD}: ${CRUMB}" \
-  -d "NIPON_REF=main&DEPLOY=true&SKIP_TESTS=false" \
+  -d "NIPPON_REF=main&DEPLOY=true&SKIP_TESTS=false" \
   "${JENKINS_URL}/job/${JOB}/buildWithParameters" || echo "(build trigger may need a manual start)"
 
 echo "=== seed complete. Watch: ${JENKINS_URL}/job/${JOB}/"

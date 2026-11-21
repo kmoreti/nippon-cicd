@@ -1,5 +1,5 @@
 /*
- * NIPON CI/CD — Jenkins first-boot bootstrap.
+ * NIPPON CI/CD — Jenkins first-boot bootstrap.
  *
  * Mounted to /usr/share/jenkins/ref/init.groovy.d/init.groovy and run on every
  * boot. It (1) creates the GitHub token credential the job needs to clone the
@@ -19,10 +19,10 @@ log = Logger.getLogger('nippon-cicd-init')
 
 // --- 1) GitHub token credential so the job can clone the PRIVATE nippon repo ---
 // The job's SCM points at kmoreti/nippon.git (private), so a job-level checkout
-// needs a token. It comes from the NIPON_GH_TOKEN env var (the .env GITHUB_TOKEN
+// needs a token. It comes from the NIPPON_GH_TOKEN env var (the .env GITHUB_TOKEN
 // injected by docker-compose). Created as a GLOBAL System credential.
 try {
-    def token = System.getenv('NIPON_GH_TOKEN')
+    def token = System.getenv('NIPPON_GH_TOKEN')
     if (token && token.trim()) {
         def store = SystemCredentialsProvider.getInstance().getStore()
         def domain = Domain.global()
@@ -30,7 +30,7 @@ try {
         def existing = store.getCredentials(domain).find { it.id == id }
         def cred = new UsernamePasswordCredentialsImpl(
             CredentialsScope.GLOBAL, id,
-            'NIPON GitHub token (clone private kmoreti/nippon)',
+            'NIPPON GitHub token (clone private kmoreti/nippon)',
             'x-access-token', token)
         if (existing != null) {
             store.updateCredentials(domain, existing, cred)
@@ -40,7 +40,7 @@ try {
             log.info("created credential ${id}")
         }
     } else {
-        log.warning('NIPON_GH_TOKEN not set; skipping nippon-gh-token credential')
+        log.warning('NIPPON_GH_TOKEN not set; skipping nippon-gh-token credential')
     }
 } catch (Exception e) {
     log.warning("credential creation failed: ${e.message}")
@@ -57,7 +57,7 @@ try {
     def existing = store.getCredentials(domain).find { it.id == id }
     def cred = new UsernamePasswordCredentialsImpl(
         CredentialsScope.GLOBAL, id,
-        'NIPON SonarQube admin (analysis login)',
+        'NIPPON SonarQube admin (analysis login)',
         'admin', 'admin')
     if (existing != null) {
         store.updateCredentials(domain, existing, cred)

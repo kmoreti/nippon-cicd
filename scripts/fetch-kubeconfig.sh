@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# NIPON CI/CD — fetch-kubeconfig.sh (optional helper)
+# NIPPON CI/CD — fetch-kubeconfig.sh (optional helper)
 #
 # Pulls the k3s admin kubeconfig from the node so you can drive the cluster
 # from your laptop:  `ssh ... 'cat /etc/rancher/k3s/k3s.yaml' > ~/.kube/config`

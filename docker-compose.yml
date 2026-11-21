@@ -1,13 +1,13 @@
 # ============================================================================
-# NIPON CI/CD — docker-compose
+# NIPPON CI/CD — docker-compose
 #
 # Brings up:
-#   * jenkins     — the CI/CD controller (builds, tests, quality-gates, deploys NIPON)
+#   * jenkins     — the CI/CD controller (builds, tests, quality-gates, deploys NIPPON)
 #   * sonarqube   — static analysis + code coverage quality gate
 #   * sonar-db    — Postgres metadata store for SonarQube
 #
 # Jenkins runs privileged and mounts the Docker socket so the pipeline can
-# build + push the NIPON service images to the local registry (.120) and so
+# build + push the NIPPON service images to the local registry (.120) and so
 # agents can use the host Docker daemon.
 #
 # Usage:
@@ -41,17 +41,17 @@ services:
       JAVA_OPTS: "-Duser.timezone=Europe/Dublin -Dhudson.model.DirectoryBrowserSupport.CSP="
       TZ: "Europe/Dublin"
       # Pipeline inputs (consumed by the Jenkinsfile; secrets come from .env)
-      NIPON_REPO_URL: ${NIPON_REPO_URL:-https://github.com/kmoreti/nippon.git}
-      NIPON_REF: ${NIPON_REF:-main}
-      NIPON_GH_TOKEN: ${GITHUB_TOKEN:-}
+      NIPPON_REPO_URL: ${NIPPON_REPO_URL:-https://github.com/kmoreti/nippon.git}
+      NIPPON_REF: ${NIPPON_REF:-main}
+      NIPPON_GH_TOKEN: ${GITHUB_TOKEN:-}
       SONAR_HOST: http://sonarqube:9000
       SONAR_TOKEN: ${SONAR_TOKEN:-}
       K3S_NODE: ${K3S_NODE:-kmoreti@192.168.68.129}
       K3S_SSH_KEY: /home/jenkins/.ssh/id_ed25519   # working key to the k3s node
       KUBECTL_CONFIG: /home/jenkins/.kube/config
-      # Build toolchain (NIPON needs JDK 27 + Maven 3.9; the host has both)
-      NIPON_JAVA_HOME: /opt/jdk27
-      NIPON_MAVEN_HOME: /opt/maven
+      # Build toolchain (NIPPON needs JDK 27 + Maven 3.9; the host has both)
+      NIPPON_JAVA_HOME: /opt/jdk27
+      NIPPON_MAVEN_HOME: /opt/maven
       K3S_NAMESPACE: ${K3S_NAMESPACE:-nippon}
       REGISTRY: ${REGISTRY:-192.168.68.120:5000}
       DEPLOY: ${DEPLOY:-true}

@@ -35,7 +35,7 @@ RUN mkdir -p /opt/jdk27 \
     && /opt/jdk27/bin/java -version
 
 ENV MAVEN_HOME=/opt/maven
-ENV NIPON_JAVA_HOME=/opt/jdk27
+ENV NIPPON_JAVA_HOME=/opt/jdk27
 ENV PATH="${MAVEN_HOME}/bin:${PATH}"
 
 # Verify both installations
